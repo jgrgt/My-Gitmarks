@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="resource-type" content="Document" />
+	<title>Digital Web Magazine	 - Scope in JavaScript	</title>
+	
+	<meta name="description" content="Digital Web Magazine - Scope in JavaScript" />
+	<meta name="keywords" content="Scope in JavaScript, Scope, this, this., .apply(), .call(), .bind(), click_handler, JavaScript, JS, DOM, DHTML, Mike West, Mike, West" />
+	<meta name="distribution" content="local" />
+	<meta name="copyright" content="Copyright 0 Digital Web Magazine" />
+	<meta name="type" content="index" />
+	<meta name="pubdate" content="20060911" />
+	<link rel="shortcut icon" type="image/ico" href="/favicon.ico" />
+
+	<link rel="bookmark" href="#masthead" title="Top of the Page" />
+	<link rel="bookmark" href="#globalNav" title="Navigation" />
+	<link rel="search" href="/search/" title="Search Digital Web Magazine" />
+	<link rel="bookmark" href="#content" title="Content" />
+	<link rel="copyright" href="javascript:alert('Copyright 0 Digital Web Magazine')" />
+	
+<link rel="stylesheet" type="text/css" href="/css/article.css" media="screen" title="Digital Web Magazine Style" /><link rel="alternate stylesheet" type="text/css" href="/css/print.css" media="screen" title="Print Preview" />
+<link rel="stylesheet" type="text/css" href="/css/print.css" media="print" />
+<script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=searchbox_012534339689088502956%3A645mphn3x04"></script>
+<script type="text/javascript" src="/js/api.js"></script>
+<script src="/mint/?js" type="text/javascript"></script>
+<script type="text/javascript">var _sf_startpt=(new Date()).getTime()</script>
+</head>
+<body id="article">
+	
+	<!-- AdPacks.com Ad Code -->
+	<script type="text/javascript">
+	(function(){
+	  var bsa = document.createElement('script');
+	     bsa.type = 'text/javascript';
+	     bsa.async = true;
+	     bsa.src = '//s3.buysellads.com/ac/bsa.js';
+	  (document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(bsa);
+	})();
+	</script>
+	<!-- End AdPacks.com Ad Code -->
+
+	
+
+<h1 id="masthead"><a href="/"><img src="/images/dw_logo_big.gif" width="316" height="77" alt="Digital Web Magazine" /></a></h1>
+<p id="slogan">The web professional's online magazine of choice.</p>
+
+<div id="content" class="column">
+	
+		<h1>Scope in JavaScript</h1>
+
+	<div id="comment_invite_top">
+		<strong>Got something to say?</strong>
+		<p><a href="/articles/scope_in_javascript/comments/">Share your comments</a> on this topic with other web professionals</p>
+	</div>
+
+	<p class="location">In: <a href="/types/articles/" >Articles</a></p>
+				<p class="author">By <a href="/about/contributors/mike_west" >Mike West</a></p>
+		<p class="date">Published on September 11, 2006</p>
+
+	<p><a href="http://en.wikipedia.org/wiki/Scope_%28programming%29">Scope</a> is one of the foundational aspects of the JavaScript language, and probably the one I&#8217;ve struggled with the most when building complex programs.  I can&#8217;t count the number of times I&#8217;ve lost track of what the <code>this</code> keyword refers to after passing control around from function to function, and I&#8217;ve often found myself contorting my code in all sorts of confusing ways, trying to retain some semblance of sanity in my understanding of which variables were accessible where.</p>
+<p>This article will tackle the problem head-on, outlining definitions of context and scope, examining two JavaScript methods that allow us to manipulate context, and concluding with a deep dive into an <em>effective</em> solution to ninety percent of the problems I&#8217;ve run into.</p>
+<h3>Where Am I?  And Who Are You?</h3>
+<p>Every bit of your JavaScript program is executed in one <strong>execution context</strong> or another.  You can think of these contexts as your code&#8217;s neighborhood, giving each line an understanding of where it comes from, and who its friends and neighbors are.  As it turns out, this is important information, as JavaScript societies have fairly strict rules about who can associate with whom; execution contexts are better thought of as gated communities than as open subdivisions.</p>
+<p>We can refer to these social boundaries generally as <strong>scope</strong>, and they&#8217;re important enough to be codified in each neighborhood&#8217;s charter, which we&#8217;ll refer to as the context&#8217;s <strong>scope chain</strong>.  Code within a particular neighborhood can only access variables listed on its scope chain, and prefers interaction with locals to associations outside its neighborhood.</p>
+<p>Practically speaking, evaluating a function establishes a distinct execution context that appends its local scope to the scope chain it was defined within.  JavaScript resolves identifiers within a particular context by climbing up the scope chain, moving locally to globally.  This means that local variables with the same name as variables higher up on the scope chain take precedence, which makes sense: If my good friends are talking together about &#8220;Mike West,&#8221; it&#8217;s pretty clear that they&#8217;re talking about <em>me</em>, not about the <a href="http://www.mikewest.net/" rel="nofollow">bluegrass singer</a> or the <a href="http://www.isds.duke.edu/~mw/" rel="nofollow">Duke professor</a>, even though the latter two are (arguably) better known.</p>
+<p>Let&#8217;s walk through some example code to explore the implications:</p>
+<p><code>&lt;script type="text/javascript"&gt;
+<br />&nbsp;var ima_celebrity = "Everyone can see me!  I'm famous!",
+<br />&nbsp;&nbsp;the_president = "I'm the decider!";
+<br />&nbsp;
+<br />&nbsp;function pleasantville() {
+<br />&nbsp;&nbsp;var the_mayor       = "I rule Pleasantville with an iron fist!",
+<br />&nbsp;&nbsp;&nbsp;ima_celebrity   = "All my neighbors know who I am!";
+<br />&nbsp;
+<br />&nbsp;&nbsp;function lonely_house() {
+<br />&nbsp;&nbsp;&nbsp;var agoraphobic = "I fear the day star!",
+<br />&nbsp;&nbsp;&nbsp;&nbsp;a_cat       = "Meow.";                
+<br />&nbsp;&nbsp;}
+<br />&nbsp;}
+<br />&lt;/script&gt;
+</code></p>
+<p>Our global star, <code>ima_celebrity</code>, is recognized by everyone.  She&#8217;s politically active, talking with <code>the_president</code> on a fairly frequent basis, and incredibly friendly; she&#8217;ll sign autographs and answer questions for anyone she runs into.  That said, she doesn&#8217;t have a whole lot of personal contact with her fans.  She&#8217;s pretty sure they <em>exist</em> and that they probably have lives of their own somewhere, but she certainly doesn&#8217;t know what they&#8217;re doing, or even their names.</p>
+<p>Inside <code>pleasantville</code>, <code>the_mayor</code> is a well-known face.  She&#8217;s always walking the streets of her town, chatting up her constituents, shaking hands, and kissing babies.  As <code>pleasantville</code> is a big, important neighborhood, she&#8217;s got a big red phone in her office, giving her a direct line to the president (or at least a top aide) 24 hours a day, 7 days a week.  She&#8217;s seen <code>lonely_house</code> up on a hill at the outskirts of town, but never really worried about who lives inside.</p>
+<p>That <code>lonely_house</code> is a world unto itself.  The <code>agoraphobic</code> stays inside most of the time, playing solitaire and feeding <code>a_cat</code>.  He&#8217;s called <code>the_mayor</code> a few times to ask about local noise regulations, and even wrote <code>ima_celebrity</code> (Pleasantville&#8217;s <code>ima_celebrity</code>, that is) some fan mail after seeing her on the local news.</p>
+<h3><code>this</code>?  What&#8217;s that?</h3>
+<p>In addition to establishing a scope chain, each execution context offers a keyword named <code>this</code>.  In its most common usage, <code>this</code> serves as an identity function, providing our neighborhoods a way of referring to themselves.  We can&#8217;t always rely on that behavior, however: Depending on how we get into a particular neighborhood, <code>this</code> might mean something else entirely.  In fact, <em>how we get into the neighborhood</em> is itself exactly what <code>this</code> generally refers to.  Four scenarios deserve special attention:</p>
+<ul>
+<li><strong>Calling an Object&#8217;s Method</strong>
+<p><span class="pullquote">In typical object-oriented programming, we need a way of identifying and referring to the object that we&#8217;re currently working with.  <code>this</code> serves the purpose admirably, providing our objects the ability to examine themselves, and point at their own properties.</span></p>
+<p><code>&nbsp;&lt;script type="text/javascript"&gt;
+<br />&nbsp;&nbsp;var deep_thought = {
+<br />&nbsp;&nbsp;&nbsp;the_answer:     42,
+<br />&nbsp;&nbsp;&nbsp;ask_question:   function () {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;return this.the_answer;
+<br />&nbsp;&nbsp;&nbsp;}
+<br />&nbsp;&nbsp;};
+<br />&nbsp;
+<br />&nbsp;&nbsp;var the_meaning = deep_thought.ask_question();
+<br />&nbsp;&lt;/script&gt;
+</code></p>
+<p>This example builds an object named <code>deep_thought</code>, sets its <code>the_answer</code> property to 42, and creates an <code>ask_question</code> method.  When <code>deep_thought.ask_question()</code> is executed, JavaScript establishes an execution context for the function call, setting <code>this</code> to the object referenced by whatever came before the last &#8221;.&#8221;, in this case: <code>deep_thought</code>.  The method can then look in the mirror via <code>this</code> to examine its own properties, returning the value stored in <code>this.the_answer</code>: 42.</p>
+</li>
+<li><strong>Constructor</strong>
+<p>Likewise, when defining a function to be used as a constructor with the <code>new</code> keyword, <code>this</code> can be used to refer to the object being created. Let&#8217;s rewrite the example above to reflect that scenario:</p>
+<p><code>&nbsp;&lt;script type="text/javascript"&gt;
+<br />&nbsp;&nbsp;function BigComputer(answer) {
+<br />&nbsp;&nbsp;&nbsp;this.the_answer     = answer;
+<br />&nbsp;&nbsp;&nbsp;this.ask_question   = function () {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;return this.the_answer;
+<br />&nbsp;&nbsp;&nbsp;}
+<br />&nbsp;&nbsp;}
+<br />&nbsp;
+<br />&nbsp;&nbsp;var deep_thought = new BigComputer(42);
+<br />&nbsp;&nbsp;var the_meaning  = deep_thought.ask_question();
+<br />&nbsp;&lt;/script&gt;
+</code></p>
+<p>Instead of explicitly creating the <code>deep_thought</code> object, we&#8217;ll write a function to create <code>BigComputer</code> objects, and <i>instantiate</i> <code>deep_thought</code> as an instance variable via the <code>new</code> keyword.  When <code>new BigComputer()</code> is executed, a completely new object is created transparently in the background.  <code>BigComputer</code> is called, and its <code>this</code> keyword is set to reference that new object.  The function can set properties and methods on <code>this</code>, which is transparently returned at the end of <code>BigComputer</code>&#8217;s execution.</p>
+<p>Notice, though, that <code>deep_thought.the_question()</code> still works just as it did before.  What&#8217;s going on there?  Why does <code>this</code> mean something different inside <code>the_question</code> than it does inside <code>BigComputer</code>?  Put simply, we <em>entered</em> <code>BigComputer</code> via <code>new</code>, so <code>this</code> meant &#8220;the new object.&#8221;  On the other hand, we <em>entered</em> <code>the_question</code> via <code>deep_thought</code>, so while we&#8217;re executing that method, <code>this</code> means &#8220;whatever <code>deep_thought</code> refers to&#8221;.  <code>this</code> is not read from the scope chain as other variables are, but instead is <em>reset</em> on a context by context basis.</p>
+</li>
+<li><strong>Function Call</strong>
+<p>What if we just call a normal, everyday function without any of this fancy object stuff?  What does <code>this</code> mean in that scenario?</p>
+<p><code>&nbsp;&lt;script type="text/javascript"&gt;
+<br />&nbsp;&nbsp;function test_this() {
+<br />&nbsp;&nbsp;&nbsp;return this;
+<br />&nbsp;&nbsp;}
+<br />&nbsp;&nbsp;var i_wonder_what_this_is = test_this();
+<br />&nbsp;&lt;/script&gt;
+</code></p>
+<p>In this case, we weren&#8217;t provided a context by <code>new</code>, nor were we given a context in the form of an object to piggyback off of.  Here, <code>this</code> defaults to reference the most global thing it can: for web pages, this is the <code>window</code> object.</p>
+</li>
+<li><strong>Event Handler</strong>
+<p>For a more complicated twist on the normal function call, let&#8217;s say that we&#8217;re using a function to handle an <code>onclick</code> event.  What does <code>this</code> mean when the event triggers our function&#8217;s execution?  Unfortunately, there&#8217;s not a simple answer to this question.</p>
+<p>If we write the event handler inline, <code>this</code> refers to the global <code>window</code> object:</p>
+<p><code>&nbsp;&lt;script type="text/javascript"&gt;
+<br />&nbsp;&nbsp;function click_handler() {
+<br />&nbsp;&nbsp;&nbsp;alert(this);  // alerts the window object
+<br />&nbsp;&nbsp;}
+<br />&nbsp;&lt;/script&gt;
+<br />&nbsp;...
+<br />&nbsp;&lt;button id='thebutton' onclick='click_handler()'&gt;Click me!&lt;/button&gt;
+</code></p>
+<p>However, when we add an event handler via JavaScript, <code>this</code> refers to the DOM element that generated the event. (Note: The event handling shown here is short and readable, but otherwise poor.  Please use a <a href="http://dean.edwards.name/weblog/2005/10/add-event2/">real addEvent function</a> instead.):</p>
+<p><code>&nbsp;&lt;script type="text/javascript"&gt;
+<br />&nbsp;&nbsp;function click_handler() {
+<br />&nbsp;&nbsp;&nbsp;alert(this);  // alerts the button DOM node
+<br />&nbsp;&nbsp;}
+<br />&nbsp;
+<br />&nbsp;&nbsp;function addhandler() {
+<br />&nbsp;&nbsp;&nbsp;document.getElementById('thebutton').onclick = click_handler;
+<br />&nbsp;&nbsp;}
+<br />&nbsp;
+<br />&nbsp;&nbsp;window.onload = addhandler;
+<br />&nbsp;&lt;/script&gt;
+<br />&nbsp;...
+<br />&nbsp;&lt;button id='thebutton'&gt;Click me!&lt;/button&gt;
+</code></p>
+</li>
+</ul>
+<h3>Complications</h3>
+<p>Let&#8217;s run with that last example for a moment longer.  What if instead of running <code>click_handler</code>, we wanted to ask <code>deep_thought</code> a question every time we clicked the button?  The code for that seems pretty straightforward; we might try this:</p>
+<p><code>&lt;script type="text/javascript"&gt;
+<br />&nbsp;function BigComputer(answer) {
+<br />&nbsp;&nbsp;this.the_answer     = answer;
+<br />&nbsp;&nbsp;this.ask_question   = function () {
+<br />&nbsp;&nbsp;&nbsp;alert(this.the_answer);
+<br />&nbsp;&nbsp;}
+<br />&nbsp;}
+<br />&nbsp;
+<br />&nbsp;function addhandler() {
+<br />&nbsp;&nbsp;var deep_thought    = new BigComputer(42),
+<br />&nbsp;&nbsp;&nbsp;the_button      = document.getElementById('thebutton');
+<br />&nbsp;
+<br />&nbsp;&nbsp;the_button.onclick = deep_thought.ask_question;
+<br />&nbsp;}
+<br />&nbsp;
+<br />&nbsp;window.onload = addhandler;
+<br />&lt;/script&gt;
+</code></p>
+<p>Perfect, right?  We click on the button, <code>deep_thought.ask_question</code> is executed, and we get back &#8220;42.&#8221; So why is the browser giving us <code>undefined</code> instead?  What did we do wrong?</p>
+<p>The problem is simply this: We&#8217;ve passed off a reference to the <code>ask_question</code> method, which, when executed as an event handler, runs in a different context than when it&#8217;s executed as an object method.  In short, the <code>this</code> keyword in <code>ask_question</code> is pointing at the DOM element that generated the event, not at a <code>BigComputer</code> object.  The DOM element doesn&#8217;t have a <code>the_answer</code> property, so we&#8217;re getting back <code>undefined</code> instead of &#8220;42.&#8221;  <code>setTimeout</code> exhibits similar behavior, delaying the execution of a function while at the same time moving it out into a global context.</p>
+<p>This issue crops up all over the place in our programs, and it&#8217;s a terribly difficult problem to debug without keeping careful track of what&#8217;s going on in all the corners of your program, especially if your object has properties that <em>do</em> exist on DOM elements or the <code>window</code> object.</p>
+<h3>Manipulating Context With <code>.apply()</code> and <code>.call()</code></h3>
+<p>We really <em>do</em> want to be able to ask <code>deep_thought</code> a question when we click the button, and more generally, we <em>do</em> want to be able to call object methods in their native context when responding to things like events and <code>setTimeout</code> calls.  Two little-known JavaScript methods, <code>apply</code> and <code>call</code>, indirectly enable this functionality by allowing us to manually override the default value of <code>this</code> when we execute a function call.  Let&#8217;s look at <code>call</code> first:</p>
+<p><code>&lt;script type="text/javascript"&gt;
+<br />&nbsp;var first_object = {
+<br />&nbsp;&nbsp;num:   42
+<br />&nbsp;};
+<br />&nbsp;var second_object = {
+<br />&nbsp;&nbsp;num:   24
+<br />&nbsp;};
+<br />&nbsp;
+<br />&nbsp;function multiply(mult) {
+<br />&nbsp;&nbsp;return this.num * mult;
+<br />&nbsp;}
+<br />&nbsp;
+<br />&nbsp;multiply.call(first_object, 5);     // returns 42 * 5
+<br />&nbsp;multiply.call(second_object, 5);    // returns 24 * 5
+<br />&lt;/script&gt;
+</code></p>
+<p>In this example, we first define two objects, <code>first_object</code> and <code>second_object</code>, each with a <code>num</code> property.  Then we define a <code>multiply</code> function that accepts a single argument, and returns the product of that argument, and the <code>num</code> property of its <code>this</code> object.  If we called that function by itself, the answer returned would almost certainly be <code>undefined</code>, since the global <code>window</code> object doesn&#8217;t have a <code>num</code> property unless we explicitly set one.  We need some way of telling <code>multiply</code> what its <code>this</code> keyword ought refer to; the <code>call</code> method of the <code>multiply</code> function is exactly what we&#8217;re looking for.</p>
+<p>The first argument to <code>call</code> defines what <code>this</code> means inside the executed function.  The remaining arguments to <code>call</code> are passed into the executed function, just as if you&#8217;d called it yourself.  So, when <code>multiply.call(first_object, 5)</code> is executed, the <code>multiply</code> function is called, <code>5</code> is passed in as the first argument, and the <code>this</code> keyword is set to refer to object <code>first_object</code>.  Likewise, when <code>multiply.call(second_object, 5)</code> is executed, the <code>multiply</code> function is called, <code>5</code> is passed in as the first argument, and the <code>this</code> keyword is set to refer to object <code>second_object</code>.</p>
+<p><code>apply</code> works in exactly the same way as <code>call</code>, but allows you to wrap up the arguments to the called function in an array, which can be quite useful when programatically generating function calls.  Replicating the functionality we just talked about using <code>apply</code> is trivial:</p>
+<p><code>&lt;script type="text/javascript"&gt;
+<br />&nbsp;...
+<br />&nbsp;
+<br />&nbsp;multiply.apply(first_object, [5]);     // returns 42 * 5
+<br />&nbsp;multiply.apply(second_object, [5]);    // returns 24 * 5
+<br />&lt;/script&gt;
+</code></p>
+<p><code>apply</code> and <code>call</code> are very useful on their own, and well worth keeping around in your toolkit, but they only get us halfway to solving the problem of context shifts for event handlers.  It&#8217;s easy to think that we could solve the problem by simply using <code>call</code> to shift the meaning of <code>this</code> when we set up the handler:</p>
+<p><code>function addhandler() {
+<br />&nbsp;var deep_thought    = new BigComputer(42),
+<br />&nbsp;&nbsp;the_button      = document.getElementById('thebutton');
+<br />&nbsp;
+<br />&nbsp;the_button.onclick = deep_thought.ask_question.call(deep_thought);
+<br />}
+</code></p>
+<p>The problem with this line of reasoning is simple: <code>call</code> executes the function <em>immediately</em>.  Instead of providing a function reference to the <code>onclick</code> handler, we&#8217;re giving it <em>the result</em> of an executed function.  We need to exploit another feature of JavaScript to really solve this problem.</p>
+<h3>The Beauty of <code>.bind()</code></h3>
+<p>I&#8217;m not a <em>huge</em> fan of the <a href="http://prototype.conio.net/">Prototype JavaScript framework</a>, but I am very much impressed with the quality of its code as a whole.  In particular, one simple addition it makes to the <code>Function</code> object has had a hugely positive impact on my ability to manage the context in which function calls execute: <code>bind</code> performs the same general task as <code>call</code>, altering the context in which a function executes.  The difference is that <code>bind</code> returns a function reference that can be used later, rather than the result of an immediate execution that we get with <code>call</code>.</p>
+<p>If we simplify the <code>bind</code> function a bit to get at the key concepts, we can insert it into the multiplication example we discussed earlier to really dig into how it works; it&#8217;s quite an elegant solution:</p>
+<p><code>&lt;script type="text/javascript"&gt;
+<br />&nbsp;var first_object = {
+<br />&nbsp;&nbsp;num:   42
+<br />&nbsp;};
+<br />&nbsp;var second_object = {
+<br />&nbsp;&nbsp;num:   24
+<br />&nbsp;};
+<br />&nbsp;
+<br />&nbsp;function multiply(mult) {
+<br />&nbsp;&nbsp;return this.num * mult;
+<br />&nbsp;}
+<br />&nbsp;
+<br />&nbsp;Function.prototype.bind = function(obj) {
+<br />&nbsp;&nbsp;var method  = this,
+<br />&nbsp;&nbsp;&nbsp;temp    = function() {
+<br />&nbsp;&nbsp;&nbsp;&nbsp;return method.apply(obj, arguments);
+<br />&nbsp;&nbsp;&nbsp;};
+<br />&nbsp;
+<br />&nbsp;&nbsp;return temp;
+<br />&nbsp;}
+<br />&nbsp;
+<br />&nbsp;var first_multiply = multiply.bind(first_object);
+<br />&nbsp;first_multiply(5);  // returns 42 * 5
+<br />&nbsp;
+<br />&nbsp;var second_multiply = multiply.bind(second_object);
+<br />&nbsp;second_multiply(5);  // returns 24 * 5
+<br />&lt;/script&gt;
+</code></p>
+<p>First, we define <code>first_object</code>, <code>second_object</code>, and the <code>multiply</code> function, just as before.  With those taken care of, we move on to creating a <code>bind</code> method on the <code>Function</code> object&#8217;s <a href="http://en.wikipedia.org/wiki/Prototype-based_programming"><code>prototype</code></a>, which has the effect of making <code>bind</code> available for all functions in our program.  When <code>multiply.bind(first_object)</code> is called, JavaScript creates an execution context for the <code>bind</code> method, setting <code>this</code> to the <code>multiply</code> function, and setting the first argument, <code>obj</code>, to reference <code>first_object</code>.  So far, so good.</p>
+<p>The real genius of this solution is the creation of <code>method</code>, set equal to <code>this</code> (the <code>multiply</code> function itself).  When the anonymous function is created on the next line, <code>method</code> is accessible via its scope chain, as is <code>obj</code> (<code>this</code> couldn&#8217;t be used here, because when the newly created function is executed, <code>this</code> will be overwritten by a new, local context).  This alias to <code>this</code> makes it possible to use <code>apply</code> to execute the <code>multiply</code> function, passing in <code>obj</code> to ensure that the context is set correctly.  In computer-science-speak, <code>temp</code> is a <a href="http://www.jibbering.com/faq/faq_notes/closures.html"><cite>closure</cite></a> that, when returned at the end of the <code>bind</code> call, can be used in any context whatsoever to execute <code>multiply</code> in the context of <code>first_object</code>.</p>
+<p>This is exactly what we need for the event handler and <code>setTimeout</code> scenarios discussed above.  The following code solves that problem completely, binding the <code>deep_thought.ask_question</code> method to the <code>deep_thought</code> context, so that it executes correctly whenever the event is triggered:</p>
+<p><code>function addhandler() {
+<br />&nbsp;var deep_thought    = new BigComputer(42),
+<br />&nbsp;&nbsp;the_button      = document.getElementById('thebutton');
+<br />&nbsp;
+<br />&nbsp;the_button.onclick = deep_thought.ask_question.bind(deep_thought);
+<br />}
+</code></p>
+<p>Beautiful.</p>
+<h3>References</h3>
+<ul>
+<li><a href="http://www.jibbering.com/faq/faq_notes/closures.html">JavaScript Closures</a> is the best resource on the net for a thorough discussion of closures: what they do, how they do it, and how to use them without going insane.
+</li>
+<li>The <a href="http://prototype.conio.net/">Protype JavaScript Framework</a> is full of little nuggets like <code>bind</code>.  The version available here not only allows the binding of a particular <code>this</code> value, but also of some or all of a function&#8217;s arguments, which comes in handy all too often.
+</li>
+<li><a href="http://javascript.crockford.com/">Douglas Crockford&#8217;s JavaScript essays</a> are excellent resources for both basic and advanced JavaScript programmers.  The man knows what he&#8217;s talking about, and explains difficult concepts in an easy-to-grasp manner.
+</li>
+<li><a href="http://digital-web.com/articles/variable_scope_for_new_programmers/">Variable Scope for New Programmers</a> is a good article if you'd like more discussion of scope from a beginner's perspective.  Written by <a href='http://snook.ca/'>Jonathan Snook</a>, and published in this very magazine at the end of last year, it's still an informative and useful read.</li>
+</ul>
+	<div id="comment_invite_bottom">
+		<strong>Got something to say?</strong>
+				<p><a href="/articles/scope_in_javascript/comments/" >Share&nbsp;your&nbsp;comments&nbsp;&nbsp;with&nbsp;other&nbsp;professionals</a>&nbsp;(2&nbsp;comments)</p>
+	</div>
+	
+	<ul id="bookmarks">
+		<li class="magnolia"><a href="http://ma.gnolia.com/bookmarklet/add?url=http://www.digital-web.com/articles/scope_in_javascript&amp;description=Scope+in+JavaScript">Add to Magnolia</a></li><li class="myyahoo"><a href="http://myweb2.search.yahoo.com/myresults/bookmarklet?u=http://www.digital-web.com/articles/scope_in_javascript&amp;t=Scope+in+JavaScript">Add to My Yahoo!</a></li><li class="newsvine"><a href="http://www.newsvine.com/_tools/seed&amp;save?u=http://www.digital-web.com/articles/scope_in_javascript&amp;h=Scope+in+JavaScript">Add to Newsvine</a></li><li class="digg"><a href="http://digg.com/submit?phase=2&amp;url=http%3A//www.digital-web.com/articles/scope_in_javascript&amp;title=Scope+in+JavaScript">Digg this story</a></li><li class="delicious"><a href="http://del.icio.us/post?url=http://www.digital-web.com/articles/scope_in_javascript&amp;title=Scope+in+JavaScript" onclick="window.open('http://del.icio.us/post?v=4&amp;noui&amp;jump=close&amp;url=http://www.digital-web.com/articles/scope_in_javascript&amp;title=Scope in JavaScript', 'delicious','toolbar=no,width=700,height=400'); return false;">Add to Del.icio.us</a></li>	</ul>
+
+	<p id="topics" style="margin-top: 0.75em;">
+		<strong>Related Topics</strong>: 
+		<a href="/topics/scripting" >Scripting</a>, <a href="/topics/programming" >Programming</a>	</p>
+	<div id="bio">
+					<div class="clearhak">&nbsp;</div>
+			<img src="/images/profiles/mike_west.jpg" width="100" />
+			<p><a href="http://www.digital-web.com/about/staff/mike_west/">Mike West</a> abandoned suburban Texas' wide open plains in 2005 in favour of the Black Forest in Southern Germany where he currently lives and works.  His musings about the web are periodically posted to his personal website, <a href='http://mikewest.org/'>mikewest.org</a>.			</p>
+			</div>
+</div>
+
+
+<div id="footer">
+		<p class="banner ad"></p>
+	<p>Copyright &#169; 1994-2011 <a href="/about/copyright/">Digital Web Magazine</a>. All Rights Reserved.</p>
+</div>
+
+<ul id="globalNav">
+	<li id="articlesLink"><a href="/">Home</a></li><li id="contactLink"><a href="/contact/">Contact</a></li><li id="aboutLink"><a href="/about/">About</a></li><li id="eventsLink"><a href="/events/">Events</a></li></ul>
+
+<p style="position:absolute; right:23px; top:25px; z-index:100;"><a href="/about/site/"><img src="/images/hostedby.gif" alt="Media Temple" width="117" height="14" border="0" /></a></p>
+
+<ul id="sortNav">
+	<li id="topicLink"><a href="/topics/">Articles by topic</a></li><li id="dateLink"><a href="/dates/">Articles by date</a></li><li id="authorLink"><a href="/authors/">Articles by author</a></li><li id="titleLink"><a href="/titles/">Articles by title</a></li><li id="typeLink"><a href="/types/">Articles by type</a></li>	<li class="search">
+		<!-- Google CSE Search Box Begins -->
+		  <form id="searchbox_012534339689088502956:645mphn3x04" action="/search/">
+		  	<label for="searchTerms">Search</label>
+			<input name="q" type="text" id="searchTerms" />
+			<input type="hidden" name="cx" value="012534339689088502956:645mphn3x04" />
+			<input type="hidden" name="cof" value="FORID:9" />
+			<input type="image" src="/images/go.gif" alt="GO!" id="searchSubmit" />
+		  </form>
+		<!-- Google CSE Search Box Ends -->
+	</li>
+</ul>
+
+<div id="sideAds">
+	<!-- AdPacks.com Zone Code -->
+	<div id="bsap_1253161" class="bsarocks bsap_842608e642eb3567cae5b25f74c41b60"></div>
+	<a href="http://adpacks.com" id="bsap_aplink">via Ad Packs</a>
+	<!-- End AdPacks.com Zone Code -->
+	
+	<div id="sbgoog">
+	</div>
+</div>
+	<script src="http://www.google-analytics.com/urchin.js" type="text/javascript"></script>
+	<script type="text/javascript">
+	_uacct = "UA-104641-1";
+	urchinTracker();
+	</script>
+	<script type="text/javascript">
+	var _sf_async_config={uid:1489,domain:"digital-web.com"};
+	(function(){
+	  function loadChartbeat() {
+	    window._sf_endpt=(new Date()).getTime();
+	    var e = document.createElement('script');
+	    e.setAttribute('language', 'javascript');
+	    e.setAttribute('type', 'text/javascript');
+	    e.setAttribute('src',
+	       (("https:" == document.location.protocol) ? "https://s3.amazonaws.com/" : "http://") +
+	       "static.chartbeat.com/js/chartbeat.js");
+	    document.body.appendChild(e);
+	  }
+	  var oldonload = window.onload;
+	  window.onload = (typeof window.onload != 'function') ?
+	     loadChartbeat : function() { oldonload(); loadChartbeat(); };
+	})();
+
+	</script>
+</body>
+</html>
